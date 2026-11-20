@@ -1,16 +1,60 @@
-# React + Vite
+# Study Notes Summarizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A study-notes summarizer built for the #BuildHybridAI 2026 hackathon with
+**Firebase AI Logic hybrid inference**.
 
-Currently, two official plugins are available:
+Short notes are sent to the on-device model (Gemini Nano in Chrome) when it is
+available: private, free and works offline. Long notes, or devices without a
+local model, automatically use the cloud model.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Value proposition
 
-## React Compiler
+Students paste their notes and get a 5-point summary. Short notes stay on the
+device for privacy. Long notes still work through the cloud, so the app behaves
+the same on every device.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How Firebase AI Logic is used
 
-## Expanding the Oxlint configuration
+- `src/firebase.js` creates two models with `getGenerativeModel`:
+  `InferenceMode.PREFER_ON_DEVICE` and `InferenceMode.ONLY_IN_CLOUD`.
+- `src/App.jsx` picks the model by note length (limit 6000 characters),
+  calls `initializeDeviceModel()` after the button click, then
+  `generateContent()`.
+- The UI badge shows whether the answer came from the device or the cloud.
+- Firebase App Check (Fraud Defense / reCAPTCHA Enterprise) protects the AI API.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Features
+
+- Paste notes, get a 5-bullet summary
+- Hybrid routing: on-device first, cloud fallback
+- Badge that shows where the summary was generated
+- Works in mobile and desktop browsers
+
+## Platform note
+
+On-device inference needs Chrome on Desktop (v139+) with the Prompt API enabled.
+On other browsers, including Android Chrome, the app uses the cloud fallback.
+
+## Run locally
+
+1. Create a Firebase project, enable AI Logic (Gemini Developer API) and
+   register a web app.
+2. Put your own firebaseConfig and reCAPTCHA Enterprise site key in
+   src/firebase.js.
+3. Register the app in Firebase App Check, then add a debug token.
+4. Create a file named .env.local with this line:
+
+       VITE_APPCHECK_DEBUG_TOKEN=your-debug-token
+
+5. Install and start:
+
+       npm install
+       npm run dev
+
+## Tech stack
+
+React, Vite, Firebase AI Logic, Firebase App Check, Gemini Developer API.
+
+## License
+
+Apache License 2.0
