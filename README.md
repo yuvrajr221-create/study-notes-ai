@@ -7,6 +7,8 @@ Short notes are sent to the on-device model (Gemini Nano in Chrome) when it is
 available: private, free and works offline. Long notes, or devices without a
 local model, automatically use the cloud model.
 
+Live demo: https://study-notes-ai-pi.vercel.app
+
 ## Value proposition
 
 Students paste their notes and get a 5-point summary. Short notes stay on the
