@@ -30,16 +30,24 @@ export default function App() {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: 16, textAlign: "left" }}>
-      <h2>Study Notes Summarizer</h2>
-      <textarea rows={10} style={{ width: "100%" }} value={text}
-        onChange={(e) => setText(e.target.value)} placeholder="Paste notes here..." />
-      <button disabled={busy || !text.trim()} onClick={summarize}>
-        {busy ? "Working..." : "Summarize"}
-      </button>
-      {where && <p>Ran on: <b>{where}</b></p>}
-      {err && <p style={{ color: "tomato" }}>{err}</p>}
-      <pre style={{ whiteSpace: "pre-wrap" }}>{summary}</pre>
-    </div>
+    <>
+      <h1>Study Notes Summarizer</h1>
+      <p className="sub">Private on-device AI, with cloud fallback</p>
+      <div className="card">
+        <textarea value={text} onChange={(e) => setText(e.target.value)}
+          placeholder="Paste your notes here..." />
+        <div className="count">{text.length} characters</div>
+        <button disabled={busy || !text.trim()} onClick={summarize}>
+          {busy ? "Working..." : "Summarize"}
+        </button>
+        {where && (
+          <div className={"badge " + (where === "On-device" ? "device" : "cloud")}>
+            {where === "On-device" ? "⚡ Ran on-device" : "☁️ Ran in cloud"}
+          </div>
+        )}
+        {err && <p className="err">{err}</p>}
+        <div className="out">{summary}</div>
+      </div>
+    </>
   );
 }
