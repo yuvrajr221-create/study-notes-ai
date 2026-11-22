@@ -76,7 +76,7 @@ export default function App() {
         try { await deviceModel.initializeDeviceModel(); } catch (e) { console.log(e); }
       }
       const result = await model.generateContent(input);
-      const t = result.response.text();
+      const t = result.response.text().replace(/\*\*/g, "");
       const w = result.response.inferenceSource === "on_device" ? "On-device" : "Cloud";
       setOut(t);
       setWhere(w);
