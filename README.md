@@ -18,7 +18,7 @@ Study notes are personal. Where a local model exists, the app can keep them on t
 - src/App.jsx calls initializeDeviceModel() after a button click, then generateContent() or generateContentStream().
 - Short notes and photos go to the hybrid model, very long notes (limit from Remote Config) go straight to the cloud.
 - The badge shows where each answer was generated, read from the response inferenceSource.
-- Firebase Remote Config controls the long-note limit and the summary prompt without a new deploy.
+- The long-note limit and the summary prompt are read from Firebase Remote Config, with defaults in the app.
 - Firebase App Check (Fraud Defense / reCAPTCHA Enterprise) protects the AI API.
 
 ## Features
