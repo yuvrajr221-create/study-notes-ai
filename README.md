@@ -36,6 +36,18 @@ the same on every device.
 - Badge that shows where the summary was generated
 - Works in mobile and desktop browsers
 
+## Privacy modes
+
+- Auto: on-device first, cloud fallback (PREFER_ON_DEVICE)
+- Private: only on the device (ONLY_ON_DEVICE), nothing is sent to the cloud
+- Cloud: always the cloud model (ONLY_IN_CLOUD)
+
+## More features
+
+- Interactive quiz: the model returns JSON, the app turns it into tappable questions with a score
+- Streaming answers while the model is writing
+- Photo of notes, Hindi and English output, local history
+
 ## Platform note
 
 On-device inference needs Chrome on Desktop (v139+) with the Prompt API enabled.
