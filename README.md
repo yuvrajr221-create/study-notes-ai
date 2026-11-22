@@ -26,6 +26,10 @@ the same on every device.
 - Firebase App Check (Fraud Defense / reCAPTCHA Enterprise) protects the AI API.
 
 ## Features
+- Photo of notes: take or upload a picture and the app reads it (JPEG/PNG, resized in the browser)
+- Four modes: Summary, Quiz, Flashcards, Explain simply
+- English and Hindi output
+- Copy button and a local history of the last 5 results
 
 - Paste notes, get a 5-bullet summary
 - Hybrid routing: on-device first, cloud fallback
