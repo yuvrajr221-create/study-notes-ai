@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { deviceModel, cloudModel, privateModel } from "./firebase";
+import { useState, useEffect } from "react";
+import { deviceModel, cloudModel, privateModel, loadConfig } from "./firebase";
 
 const LONG_LIMIT = 6000;
 const MODES = {
@@ -66,6 +66,8 @@ export default function App() {
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState(loadHist);
+  const [cfg, setCfg] = useState({ longLimit: LONG_LIMIT, summaryPrompt: MODES.summary });
+  useEffect(() => { loadConfig().then(setCfg); }, []);
 
   function onFile(e) {
     const f = e.target.files[0];
@@ -99,7 +101,7 @@ export default function App() {
 
   async function run() {
     setBusy(true); setErr(""); setOut(""); setWhere(""); setQuiz(null); setPicks({});
-    const ask = MODES[mode] + (lang === "hi" ? " Write the content in simple Hindi." : " Write in English.");
+    const ask = (mode === "summary" ? cfg.summaryPrompt : MODES[mode]) + (lang === "hi" ? " Write the content in simple Hindi." : " Write in English.");
     try {
       if (privacy === "private") {
         let ok = false;
@@ -112,7 +114,7 @@ export default function App() {
       let model;
       if (privacy === "cloud") model = cloudModel;
       else if (privacy === "private") model = privateModel;
-      else model = (image || text.length <= LONG_LIMIT) ? deviceModel : cloudModel;
+      else model = (image || text.length <= cfg.longLimit) ? deviceModel : cloudModel;
 
       const input = image
         ? [ask + " Read the notes written in the image. " + text, await shrink(image)]

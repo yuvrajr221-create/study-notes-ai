@@ -34,3 +34,20 @@ export const cloudModel = getGenerativeModel(ai, {
 export const privateModel = getGenerativeModel(ai, {
   mode: InferenceMode.ONLY_ON_DEVICE,
 });
+
+import { getRemoteConfig, fetchAndActivate, getValue } from "firebase/remote-config";
+
+const rc = getRemoteConfig(app);
+rc.settings.minimumFetchIntervalMillis = 60000;
+rc.defaultConfig = {
+  long_limit: 6000,
+  summary_prompt: "Summarize these study notes in 5 short bullet points.",
+};
+
+export async function loadConfig() {
+  try { await fetchAndActivate(rc); } catch (e) { console.log(e); }
+  return {
+    longLimit: getValue(rc, "long_limit").asNumber(),
+    summaryPrompt: getValue(rc, "summary_prompt").asString(),
+  };
+}
