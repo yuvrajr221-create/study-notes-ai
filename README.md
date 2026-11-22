@@ -39,7 +39,7 @@ the same on every device.
 ## Privacy modes
 
 - Auto: on-device first, cloud fallback (PREFER_ON_DEVICE)
-- Private: only on the device (ONLY_ON_DEVICE), nothing is sent to the cloud
+- Private: runs only on the device. If no on-device model is available (for example on Android Chrome), the app refuses to run and sends nothing to the cloud. Tested on Android; not tested on Desktop Chrome.
 - Cloud: always the cloud model (ONLY_IN_CLOUD)
 
 ## More features

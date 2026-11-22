@@ -16,7 +16,11 @@ const HINTS = {
 };
 
 const clean = (t) => t.replace(/\*\*/g, "");
-const srcOf = (r) => (r.inferenceSource === "on_device" ? "On-device" : "Cloud");
+let lastRaw = "";
+const srcOf = (r) => {
+  lastRaw = String(r.inferenceSource);
+  return lastRaw.toLowerCase().includes("device") ? "On-device" : "Cloud";
+};
 
 function parseQuiz(t) {
   try {
@@ -83,6 +87,14 @@ export default function App() {
     setBusy(true); setErr(""); setOut(""); setWhere(""); setQuiz(null); setPicks({});
     const ask = MODES[mode] + (lang === "hi" ? " Write the content in simple Hindi." : " Write in English.");
     try {
+      if (privacy === "private") {
+        let ok = false;
+        try {
+          const LM = self.LanguageModel;
+          ok = !!LM && (await LM.availability()) !== "unavailable";
+        } catch (e) { console.log(e); }
+        if (!ok) throw new Error("on-device model is not available here");
+      }
       let model;
       if (privacy === "cloud") model = cloudModel;
       else if (privacy === "private") model = privateModel;
@@ -101,13 +113,16 @@ export default function App() {
         const t = result.response.text();
         const parsed = parseQuiz(t);
         if (parsed) setQuiz(parsed); else setOut(clean(t));
-        setWhere(srcOf(result.response));
+        const w2 = srcOf(result.response);
+        if (privacy === "private" && w2 !== "On-device") { setQuiz(null); setOut(""); throw new Error("response did not come from the device"); }
+        setWhere(w2);
       } else {
         const res = await model.generateContentStream(input);
         let acc = "";
         for await (const chunk of res.stream) { acc += chunk.text(); setOut(clean(acc)); }
         const final = await res.response;
         const w = srcOf(final);
+        if (privacy === "private" && w !== "On-device") { setOut(""); throw new Error("response did not come from the device"); }
         setWhere(w);
         saveHist({ mode: LABELS[mode], where: w, out: clean(acc) });
       }
