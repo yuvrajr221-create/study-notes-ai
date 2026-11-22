@@ -30,3 +30,7 @@ export const deviceModel = getGenerativeModel(ai, {
 export const cloudModel = getGenerativeModel(ai, {
   mode: InferenceMode.ONLY_IN_CLOUD,
 });
+
+export const privateModel = getGenerativeModel(ai, {
+  mode: InferenceMode.ONLY_ON_DEVICE,
+});

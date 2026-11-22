@@ -1,14 +1,31 @@
 import { useState } from "react";
-import { deviceModel, cloudModel } from "./firebase";
+import { deviceModel, cloudModel, privateModel } from "./firebase";
 
 const LONG_LIMIT = 6000;
 const MODES = {
   summary: "Summarize these study notes in 5 short bullet points.",
-  quiz: "Create 5 quiz questions with short answers from these study notes.",
+  quiz: 'Create 5 multiple-choice questions from these study notes. Return ONLY a JSON array and no other text. Each item must be {"q": question, "options": [4 short options], "answer": index 0-3 of the correct option, "why": one short explanation}. Keep the JSON keys in English.',
   cards: "Create 6 flashcards (Q: and A:) from these study notes.",
   simple: "Explain these study notes in very simple words for a beginner.",
 };
 const LABELS = { summary: "Summary", quiz: "Quiz", cards: "Flashcards", simple: "Explain simply" };
+const HINTS = {
+  auto: "On-device first, cloud as fallback",
+  private: "Only on your device, nothing is sent to the cloud",
+  cloud: "Always uses the cloud model",
+};
+
+const clean = (t) => t.replace(/\*\*/g, "");
+const srcOf = (r) => (r.inferenceSource === "on_device" ? "On-device" : "Cloud");
+
+function parseQuiz(t) {
+  try {
+    const s = t.replace(/```json|```/g, "").trim();
+    const arr = JSON.parse(s.slice(s.indexOf("["), s.lastIndexOf("]") + 1));
+    if (Array.isArray(arr) && arr.length && arr.every((q) => q.q && Array.isArray(q.options) && typeof q.answer === "number")) return arr;
+  } catch (e) { console.log(e); }
+  return null;
+}
 
 function shrink(file) {
   return new Promise((resolve) => {
@@ -36,7 +53,10 @@ export default function App() {
   const [preview, setPreview] = useState("");
   const [mode, setMode] = useState("summary");
   const [lang, setLang] = useState("en");
+  const [privacy, setPrivacy] = useState("auto");
   const [out, setOut] = useState("");
+  const [quiz, setQuiz] = useState(null);
+  const [picks, setPicks] = useState({});
   const [where, setWhere] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -60,32 +80,47 @@ export default function App() {
   }
 
   async function run() {
-    setBusy(true); setErr(""); setOut(""); setWhere("");
+    setBusy(true); setErr(""); setOut(""); setWhere(""); setQuiz(null); setPicks({});
+    const ask = MODES[mode] + (lang === "hi" ? " Write the content in simple Hindi." : " Write in English.");
     try {
-      const ask = MODES[mode] + (lang === "hi" ? " Answer in simple Hindi." : " Answer in English.");
-      let model = cloudModel;
-      let input;
-      if (image) {
-        model = deviceModel;
-        input = [ask + " Read the notes written in the image. " + text, await shrink(image)];
+      let model;
+      if (privacy === "cloud") model = cloudModel;
+      else if (privacy === "private") model = privateModel;
+      else model = (image || text.length <= LONG_LIMIT) ? deviceModel : cloudModel;
+
+      const input = image
+        ? [ask + " Read the notes written in the image. " + text, await shrink(image)]
+        : ask + "\n\n" + text;
+
+      if (model !== cloudModel) {
+        try { await model.initializeDeviceModel(); } catch (e) { if (privacy === "private") throw e; console.log(e); }
+      }
+
+      if (mode === "quiz") {
+        const result = await model.generateContent(input);
+        const t = result.response.text();
+        const parsed = parseQuiz(t);
+        if (parsed) setQuiz(parsed); else setOut(clean(t));
+        setWhere(srcOf(result.response));
       } else {
-        model = text.length <= LONG_LIMIT ? deviceModel : cloudModel;
-        input = ask + "\n\n" + text;
+        const res = await model.generateContentStream(input);
+        let acc = "";
+        for await (const chunk of res.stream) { acc += chunk.text(); setOut(clean(acc)); }
+        const final = await res.response;
+        const w = srcOf(final);
+        setWhere(w);
+        saveHist({ mode: LABELS[mode], where: w, out: clean(acc) });
       }
-      if (model === deviceModel) {
-        try { await deviceModel.initializeDeviceModel(); } catch (e) { console.log(e); }
-      }
-      const result = await model.generateContent(input);
-      const t = result.response.text().replace(/\*\*/g, "");
-      const w = result.response.inferenceSource === "on_device" ? "On-device" : "Cloud";
-      setOut(t);
-      setWhere(w);
-      saveHist({ mode: LABELS[mode], where: w, out: t });
     } catch (e) {
-      setErr(String(e));
+      setErr(privacy === "private"
+        ? "Private mode needs the on-device model (Desktop Chrome 139+). Switch to Auto or Cloud. " + String(e)
+        : String(e));
     }
     setBusy(false);
   }
+
+  const answered = Object.keys(picks).length;
+  const score = quiz ? quiz.filter((q, i) => picks[i] === q.answer).length : 0;
 
   return (
     <>
@@ -101,6 +136,12 @@ export default function App() {
           <span className={"chip" + (lang === "en" ? " on" : "")} onClick={() => setLang("en")}>English</span>
           <span className={"chip" + (lang === "hi" ? " on" : "")} onClick={() => setLang("hi")}>हिन्दी</span>
         </div>
+        <div className="row">
+          <span className={"chip" + (privacy === "auto" ? " on" : "")} onClick={() => setPrivacy("auto")}>⚡ Auto</span>
+          <span className={"chip" + (privacy === "private" ? " on" : "")} onClick={() => setPrivacy("private")}>🔒 Private</span>
+          <span className={"chip" + (privacy === "cloud" ? " on" : "")} onClick={() => setPrivacy("cloud")}>☁️ Cloud</span>
+        </div>
+        <div className="hint">{HINTS[privacy]}</div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste your notes here, or add a photo..." />
         <div className="count">{text.length} characters</div>
         <label className="pick">📷 Add photo of notes
@@ -121,6 +162,27 @@ export default function App() {
           </div>
         )}
         {err && <p className="err">{err}</p>}
+        {quiz && (
+          <div>
+            {quiz.map((q, i) => (
+              <div key={i} className="q">
+                <div className="qt">{i + 1}. {q.q}</div>
+                {q.options.map((o, j) => {
+                  let cls = "opt";
+                  if (picks[i] !== undefined) {
+                    if (j === q.answer) cls += " right";
+                    else if (j === picks[i]) cls += " wrong";
+                  }
+                  return (
+                    <div key={j} className={cls} onClick={() => picks[i] === undefined && setPicks({ ...picks, [i]: j })}>{o}</div>
+                  );
+                })}
+                {picks[i] !== undefined && q.why && <div className="why">💡 {q.why}</div>}
+              </div>
+            ))}
+            <div className="score">Score: {score} / {quiz.length} ({answered} answered)</div>
+          </div>
+        )}
         <div className="out">{out}</div>
         {out && <span className="chip" onClick={copy}>{copied ? "Copied ✓" : "Copy"}</span>}
       </div>
@@ -128,7 +190,7 @@ export default function App() {
         <div className="card hist">
           <b>Recent</b>
           {history.map((h, i) => (
-            <div key={i} className="h" onClick={() => { setOut(h.out); setWhere(h.where); }}>
+            <div key={i} className="h" onClick={() => { setQuiz(null); setOut(h.out); setWhere(h.where); }}>
               {h.mode}: {h.out.slice(0, 60)}...
             </div>
           ))}
