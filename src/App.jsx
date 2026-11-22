@@ -79,6 +79,20 @@ export default function App() {
     try { localStorage.setItem("hist", JSON.stringify(next)); } catch (e) { console.log(e); }
   }
 
+  const [speaking, setSpeaking] = useState(false);
+
+  function speak() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    if (speaking) { synth.cancel(); setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(out);
+    u.lang = lang === "hi" ? "hi-IN" : "en-US";
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    synth.speak(u);
+  }
+
   async function copy() {
     try { await navigator.clipboard.writeText(out); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (e) { console.log(e); }
   }
@@ -199,7 +213,12 @@ export default function App() {
           </div>
         )}
         <div className="out">{out}</div>
-        {out && <span className="chip" onClick={copy}>{copied ? "Copied ✓" : "Copy"}</span>}
+        {out && (
+          <>
+            <span className="chip" onClick={copy}>{copied ? "Copied ✓" : "Copy"}</span>
+            <span className="chip" onClick={speak}>{speaking ? "⏹ Stop" : "🔊 Read aloud"}</span>
+          </>
+        )}
       </div>
       {history.length > 0 && (
         <div className="card hist">
