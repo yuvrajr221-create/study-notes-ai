@@ -39,7 +39,7 @@ Study notes are personal. Where a local model exists, the app can keep them on t
 ## Testing notes
 
 - Android phone (Chrome) and the deployed site: the cloud path works. Private mode refuses to run because no on-device model is available there.
-- Desktop Chrome (v139+): the on-device path ran and the badge showed "Ran on-device".
+- Desktop Chrome (v139+): the app is built for on-device inference. A short test on a desktop ran on-device, but I do not have a good recording of it.
 - Private mode on Desktop Chrome: not tested yet.
 
 ## Run locally
